@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Ghost in the Machine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto Mono', monospace;
+            overflow: hidden;
+            background-color: #1a202c;
+        }
+        .monitor-screen {
+            background-color: #0d1117;
+            border: 2px solid #374151;
+            box-shadow: 0 0 15px rgba(74, 222, 128, 0.2);
+            transition: all 0.2s ease-in-out;
+        }
+        .monitor-screen:hover {
+            box-shadow: 0 0 25px rgba(74, 222, 128, 0.4);
+            transform: translateY(-2px);
+        }
+        .phone {
+            background-color: #111;
+            border: 2px solid #4a5568;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+        .notification-bubble {
+            animation: pop-in 0.3s ease-out forwards, pop-out 0.3s ease-in 4.7s forwards;
+            cursor: pointer;
+        }
+        .boss-bubble {
+            animation: shake 0.5s ease-in-out;
+        }
+        @keyframes pop-in {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes pop-out {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+        }
+        .code-line {
+            white-space: pre;
+        }
+        .code-comment { color: #6a737d; }
+        .code-fixme { color: #f85149; }
+        .code-hack { color: #f6a429; }
+        .progress-bar-inner {
+            transition: width 0.3s ease-in-out;
+        }
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.75);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center h-screen">
+
+    <!-- Game Container -->
+    <div id="game-container" class="w-full h-full p-4 md:p-8 flex flex-col items-center justify-center relative hidden">
+        
+        <!-- Status Bars -->
+        <div class="w-full max-w-6xl mb-4">
+            <!-- Progress Bar -->
+            <div>
+                <label for="progress" class="block mb-1 text-sm font-medium text-green-400">Project Phoenix Progress</label>
+                <div class="w-full bg-gray-700 rounded-full h-4">
+                    <div id="progress-bar" class="bg-green-500 h-4 rounded-full progress-bar-inner" style="width: 0%"></div>
+                </div>
+            </div>
+             <!-- Stress Bar -->
+            <div class="mt-2">
+                <label for="stress" class="block mb-1 text-sm font-medium text-red-400">Stress Level</label>
+                <div class="w-full bg-gray-700 rounded-full h-4">
+                    <div id="stress-bar" class="bg-red-500 h-4 rounded-full progress-bar-inner" style="width: 10%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desk Area -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 w-full max-w-6xl h-3/4 relative">
+            
+            <!-- Left Monitor: Slack -->
+            <div id="slack-monitor" class="monitor-screen rounded-lg p-4 flex flex-col justify-start relative overflow-hidden">
+                <h2 class="text-lg font-bold text-gray-400 border-b border-gray-600 pb-2 mb-2">#general</h2>
+                <div class="text-gray-500 text-sm">
+                    <p><span class="text-blue-400 font-bold">Rohan (Mktg):</span> @Aarav any update on my email?</p>
+                    <p class="mt-2"><span class="text-purple-400 font-bold">HR Bot:</span> Reminder: Benefit enrollment ends Friday.</p>
+                </div>
+                 <div id="slack-notification-area" class="absolute inset-0 flex items-center justify-center p-4"></div>
+            </div>
+
+            <!-- Center Monitor: Project Phoenix (The Game) -->
+            <div id="code-monitor" class="monitor-screen rounded-lg p-4 flex flex-col cursor-pointer">
+                <h2 class="text-lg font-bold text-green-400 border-b border-gray-600 pb-2 mb-2">Project_Phoenix.js</h2>
+                <div class="flex-grow text-sm font-mono overflow-auto">
+                    <p class="code-line"><span class="code-comment"># TODO: Refactor the user authentication flow</span></p>
+                    <p class="code-line"><span class="code-fixme"># FIXME: Critical bug - session timeout issue</span></p>
+                    <p class="code-line"><span class="code-hack"># HACK: Temporary fix, MUST be replaced before deployment</span></p>
+                    <br>
+                    <p class="code-line text-gray-500">// Click here to code...</p>
+                    <div id="code-output"></div>
+                </div>
+                 <div id="boss-area" class="absolute inset-0 flex items-center justify-center p-4"></div>
+            </div>
+
+            <!-- Right Area: Research & Phone -->
+            <div class="flex flex-col gap-4 h-full">
+                <!-- Research Monitor -->
+                <div id="research-monitor" class="monitor-screen rounded-lg p-4 flex-1 relative overflow-hidden">
+                     <h2 class="text-lg font-bold text-gray-400 border-b border-gray-600 pb-2 mb-2">Research</h2>
+                     <div class="text-gray-500 text-sm">
+                        <p class="truncate">Forum: How to solve session timeout issues</p>
+                        <p class="truncate mt-2">Docs: New encryption library</p>
+                     </div>
+                     <div id="research-notification-area" class="absolute inset-0 flex items-center justify-center p-4"></div>
+                </div>
+                <!-- Phone -->
+                <div class="phone rounded-2xl p-3 h-1/3 flex flex-col items-center justify-center relative">
+                    <div class="w-full h-2 bg-black absolute top-2 rounded-full"></div>
+                    <div class="text-gray-400 text-2xl font-bold" id="phone-time">10:30 AM</div>
+                    <div id="phone-notification-area" class="absolute inset-0 flex items-center justify-center p-4"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Start Modal -->
+    <div id="start-modal" class="modal-backdrop fixed inset-0 flex items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg shadow-2xl p-8 max-w-lg w-full text-center border-2 border-gray-700">
+            <h1 class="text-3xl font-bold text-green-400 mb-4">Chapter 1: The Ghost in the Machine</h1>
+            <p class="text-gray-300 mb-6">You are Aarav Mehta, a brilliant but distracted programmer. The investor demo is in three weeks, and Project Phoenix is a mess. Your boss has given you one last chance to focus.</p>
+            <p class="text-gray-300 mb-6 font-bold">Your task: Click the center monitor to write code. Ignore the distractions from your other monitors and your phone. If your stress gets too high, you'll be fired.</p>
+            <button id="start-button" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg text-xl transition-transform transform hover:scale-105">Start the Day</button>
+        </div>
+    </div>
+    
+    <!-- Game Over Modal -->
+    <div id="game-over-modal" class="modal-backdrop fixed inset-0 flex items-center justify-center z-50 hidden">
+         <div id="game-over-content" class="bg-gray-800 rounded-lg shadow-2xl p-8 max-w-lg w-full text-center border-2 border-red-500">
+            <h1 class="text-3xl font-bold text-red-500 mb-4">You're Fired!</h1>
+            <p class="text-gray-300 mb-6">"I warned you, Mehta!" Mr. Sharma yelled. "Your mind wasn't here. The project will be reassigned." You walk out in a daze, the weight of your failure heavier than your laptop.</p>
+            <button id="restart-button-fail" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg text-xl transition-transform transform hover:scale-105">Try Again</button>
+        </div>
+    </div>
+
+    <!-- Win Modal -->
+    <div id="win-modal" class="modal-backdrop fixed inset-0 flex items-center justify-center z-50 hidden">
+         <div class="bg-gray-800 rounded-lg shadow-2xl p-8 max-w-lg w-full text-center border-2 border-green-500">
+            <h1 class="text-3xl font-bold text-green-400 mb-4">You Survived the Day!</h1>
+            <p class="text-gray-300 mb-6">You managed to focus and make significant progress. Mr. Sharma nods as he walks by your desk, a rare sign of approval. You head home with a sense of accomplishment, ready to face tomorrow.</p>
+            <button id="restart-button-win" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg text-xl transition-transform transform hover:scale-105">Play Another Day</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM Elements
+            const gameContainer = document.getElementById('game-container');
+            const startModal = document.getElementById('start-modal');
+            const gameOverModal = document.getElementById('game-over-modal');
+            const winModal = document.getElementById('win-modal');
+            const progressBar = document.getElementById('progress-bar');
+            const stressBar = document.getElementById('stress-bar');
+            const codeOutput = document.getElementById('code-output');
+            const codeMonitor = document.getElementById('code-monitor');
+            const startButton = document.getElementById('start-button');
+            const restartButtonFail = document.getElementById('restart-button-fail');
+            const restartButtonWin = document.getElementById('restart-button-win');
+
+            const notificationAreas = {
+                slack: document.getElementById('slack-notification-area'),
+                phone: document.getElementById('phone-notification-area'),
+                research: document.getElementById('research-notification-area'),
+                boss: document.getElementById('boss-area')
+            };
+            
+            // Game State
+            let progress = 0;
+            let stress = 10;
+            let gameInterval;
+            let distractionInterval;
+            let gameActive = false;
+            
+            const distractions = [
+                { type: 'slack', text: '😂 Check out this meme!', stress: 10, icon: '💬' },
+                { type: 'slack', text: 'URGENT: Review this now!', stress: 15, icon: '🚨' },
+                { type: 'phone', text: '50% off on Biryani', stress: 8, icon: '🍔' },
+                { type: 'phone', text: 'Your aunt tagged you in 8 photos', stress: 12, icon: '📸' },
+                { type: 'research', text: 'Is your programming language dead?', stress: 10, icon: '📰' },
+                { type: 'research', text: '10 tricks developers hate', stress: 9, icon: '💡' },
+            ];
+
+            const codeSnippets = [
+                '<span class="text-blue-400">const</span> user = <span class="text-yellow-300">getUser</span>();',
+                '<span class="text-purple-400">if</span> (user.isAuthenticated) {',
+                '  <span class="text-yellow-300">validateSession</span>(user.token);',
+                '}',
+                'Logger.log(<span class="text-green-300">"User auth successful"</span>);'
+            ];
+
+            // Event Listeners
+            startButton.addEventListener('click', startGame);
+            restartButtonFail.addEventListener('click', restartGame);
+            restartButtonWin.addEventListener('click', restartGame);
+            codeMonitor.addEventListener('click', workOnProject);
+
+            // Game Functions
+            function startGame() {
+                gameActive = true;
+                progress = 0;
+                stress = 10;
+                codeOutput.innerHTML = '';
+                updateUI();
+                
+                startModal.classList.add('hidden');
+                gameOverModal.classList.add('hidden');
+                winModal.classList.add('hidden');
+                gameContainer.classList.remove('hidden');
+                
+                gameInterval = setInterval(gameLoop, 100);
+                distractionInterval = setInterval(spawnDistraction, 3000);
+            }
+
+            function restartGame() {
+                clearInterval(gameInterval);
+                clearInterval(distractionInterval);
+                startModal.classList.remove('hidden');
+                gameContainer.classList.add('hidden');
+                gameOverModal.classList.add('hidden');
+                winModal.classList.add('hidden');
+            }
+
+            function gameLoop() {
+                if (!gameActive) return;
+                
+                // Stress increases passively over time
+                stress += 0.1;
+                
+                if (stress >= 100) {
+                    gameOver();
+                }
+                 if (progress >= 100) {
+                    winGame();
+                }
+                
+                // Boss warning
+                if (stress > 75 && !notificationAreas.boss.hasChildNodes()) {
+                    const bossDistraction = {type: 'boss', text: 'Mehta! My office!', stress: 0, icon: '😡'};
+                    createNotification(bossDistraction, true);
+                }
+
+                updateUI();
+            }
+
+            function workOnProject() {
+                if (!gameActive) return;
+                progress += 1.5;
+                stress += 0.2; // Focus also causes a bit of stress
+                
+                // Add a line of code
+                if (Math.random() > 0.5) {
+                    const snippet = codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
+                    const p = document.createElement('p');
+                    p.innerHTML = snippet;
+                    codeOutput.appendChild(p);
+                    if (codeOutput.children.length > 5) {
+                        codeOutput.removeChild(codeOutput.firstChild);
+                    }
+                }
+                 // Small chance to reduce stress when in the zone
+                if(Math.random() > 0.9) {
+                    stress = Math.max(0, stress - 2);
+                }
+
+                updateUI();
+            }
+            
+            function spawnDistraction() {
+                if (!gameActive || Math.random() > 0.75) return; // Not every interval spawns one
+                
+                const distraction = distractions[Math.floor(Math.random() * distractions.length)];
+                createNotification(distraction, false);
+            }
+
+            function createNotification(distraction, isBoss) {
+                const area = notificationAreas[distraction.type];
+                // Don't spawn if an alert is already there
+                if (area.hasChildNodes()) return;
+
+                const bubble = document.createElement('div');
+                bubble.className = 'notification-bubble p-4 rounded-lg shadow-lg flex items-center gap-3 ' + (isBoss ? 'bg-red-800 border-2 border-red-500 boss-bubble' : 'bg-blue-600');
+                
+                bubble.innerHTML = `<span class="text-2xl">${distraction.icon}</span> <span class="font-semibold">${distraction.text}</span>`;
+                
+                if (!isBoss) {
+                    bubble.onclick = () => {
+                        stress += distraction.stress;
+                        bubble.remove();
+                        updateUI();
+                    };
+                }
+                
+                area.appendChild(bubble);
+
+                setTimeout(() => {
+                    if (bubble) {
+                        bubble.remove();
+                        // If boss message expires, he gets angrier
+                        if(isBoss) stress += 10;
+                    }
+                }, 5000);
+            }
+            
+            function updateUI() {
+                progressBar.style.width = `${Math.min(100, progress)}%`;
+                stressBar.style.width = `${Math.min(100, stress)}%`;
+                
+                if (stress < 40) stressBar.className = 'bg-yellow-500 h-4 rounded-full progress-bar-inner';
+                else if (stress < 75) stressBar.className = 'bg-orange-500 h-4 rounded-full progress-bar-inner';
+                else stressBar.className = 'bg-red-600 h-4 rounded-full progress-bar-inner';
+            }
+
+            function gameOver() {
+                gameActive = false;
+                clearInterval(gameInterval);
+                clearInterval(distractionInterval);
+                gameContainer.classList.add('hidden');
+                gameOverModal.classList.remove('hidden');
+            }
+
+            function winGame() {
+                gameActive = false;
+                clearInterval(gameInterval);
+                clearInterval(distractionInterval);
+                gameContainer.classList.add('hidden');
+                winModal.classList.remove('hidden');
+            }
+
+            // Initial call to set phone time
+            document.getElementById('phone-time').innerText = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        });
+    </script>
+</body>
+</html>
